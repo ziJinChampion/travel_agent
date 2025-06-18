@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { ProcessedEvent } from "@/components/ActivityTimeline";
 import { WelcomeScreen } from "@/components/WelcomeScreen";
 import { ChatMessagesView } from "@/components/ChatMessagesView";
+import { Button } from "@/components/ui/button";
 
 export default function App() {
   const [processedEventsTimeline, setProcessedEventsTimeline] = useState<
@@ -14,7 +15,8 @@ export default function App() {
   >({});
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const hasFinalizeEventOccurredRef = useRef(false);
-
+  const [error, setError] = useState<string | null>(null);
+  console.log(import.meta.env.DEV);
   const thread = useStream<{
     messages: Message[];
     initial_search_query_count: number;
@@ -54,9 +56,10 @@ export default function App() {
           title: "Reflection",
           data: event.reflection.is_sufficient
             ? "Search successful, generating final answer."
-            : `Need more information, searching for ${event.reflection.follow_up_queries?.join(
-                ", "
-              ) || "additional information"}`,
+            : `Need more information, searching for ${
+                event.reflection.follow_up_queries?.join(", ") ||
+                "additional information"
+              }`,
         };
       } else if (event.finalize_answer) {
         processedEvent = {
@@ -71,6 +74,9 @@ export default function App() {
           processedEvent!,
         ]);
       }
+    },
+    onError: (error: any) => {
+      setError(error.message);
     },
   });
 
@@ -166,6 +172,20 @@ export default function App() {
               isLoading={thread.isLoading}
               onCancel={handleCancel}
             />
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center h-full">
+              <div className="flex flex-col items-center justify-center gap-4">
+                <h1 className="text-2xl text-red-400 font-bold">Error</h1>
+                <p className="text-red-400">{JSON.stringify(error)}</p>
+
+                <Button
+                  variant="destructive"
+                  onClick={() => window.location.reload()}
+                >
+                  Retry
+                </Button>
+              </div>
+            </div>
           ) : (
             <ChatMessagesView
               messages={thread.messages}
