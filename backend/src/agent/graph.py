@@ -78,7 +78,7 @@ def generate_query(state: OverallState, config: RunnableConfig) -> QueryGenerati
     )
     # Generate the search queries
     result = structured_llm.invoke(formatted_prompt)
-    return {"query_list": result.query}
+    return {"search_query": result.query}
 
 
 def continue_to_web_research(state: QueryGenerationState):
@@ -88,7 +88,7 @@ def continue_to_web_research(state: QueryGenerationState):
     """
     return [
         Send("web_research", {"search_query": search_query, "id": int(idx)})
-        for idx, search_query in enumerate(state["query_list"])
+        for idx, search_query in enumerate(state["search_query"])
     ]
 
 
