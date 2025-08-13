@@ -8,6 +8,7 @@ from langgraph.graph import StateGraph
 from langgraph.graph import START, END
 from langchain_core.runnables import RunnableConfig
 from google.genai import Client
+from agent.mcp_tools import MCPToolManager, MCP_TOOLS_CONFIG
 
 from agent.state import (
     OverallState,
@@ -38,7 +39,10 @@ if os.getenv("GEMINI_API_KEY") is None:
 
 # Used for Google Search API
 genai_client = Client(api_key=os.getenv("GEMINI_API_KEY"))
+mcp_tool_manager = MCPToolManager()
 
+for name, config in Configuration.mcp_tools_config.items():
+    mcp_tool_manager.register_mcp_tool(name, config)
 
 # Nodes
 def generate_query(state: OverallState, config: RunnableConfig) -> QueryGenerationState:

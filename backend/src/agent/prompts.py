@@ -88,6 +88,7 @@ Instructions:
 - You have access to the user's question.
 - Generate a high-quality answer to the user's question based on the provided summaries and the user's question.
 - Include the sources you used from the Summaries in the answer correctly, use markdown format (e.g. [apnews](https://vertexaisearch.cloud.google.com/id/1-0)). THIS IS A MUST.
+- Your answer should be in the same language as the user's question.
 
 User Context:
 - {research_topic}

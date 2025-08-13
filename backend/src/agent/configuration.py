@@ -1,8 +1,13 @@
 import os
 from pydantic import BaseModel, Field
 from typing import Any, Optional
-
+from dotenv import load_dotenv
 from langchain_core.runnables import RunnableConfig
+load_dotenv()
+
+if os.getenv("AMAP_API_KEY") is None:
+    raise ValueError("AMAP_API_KEY is not set")
+a_map_api_key = os.getenv("AMAP_API_KEY")
 
 
 class Configuration(BaseModel):
@@ -33,6 +38,12 @@ class Configuration(BaseModel):
         default=3,
         metadata={"description": "The number of initial search queries to generate."},
     )
+
+    mcp_tools_config = {
+        "amap-stream-server": {
+            "url": f"https://mcp.amap.com/mcp?key={a_map_api_key}"
+        }
+    }
 
     max_research_loops: int = Field(
         default=2,
