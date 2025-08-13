@@ -1,18 +1,17 @@
-# Gemini Fullstack LangGraph Quickstart
+# Travel Agent
 
-This project demonstrates a fullstack application using a React frontend and a LangGraph-powered backend agent. The agent is designed to perform comprehensive research on a user's query by dynamically generating search terms, querying the web using Google Search, reflecting on the results to identify knowledge gaps, and iteratively refining its search until it can provide a well-supported answer with citations. This application serves as an example of building research-augmented conversational AI using LangGraph and Google's Gemini models.
+This is a travel agent that can help you plan your trip. Just tell the agent where and when you want to go and the agent will give you the best plan include the hotel, flight, and other information.
 
-<img src="./app.png" title="Gemini Fullstack LangGraph" alt="Gemini Fullstack LangGraph" width="90%">
+
 
 ## Features
 
 - 💬 Fullstack application with a React frontend and LangGraph backend.
 - 🧠 Powered by a LangGraph agent for advanced research and conversational AI.
-- 🔍 Dynamic search query generation using Google Gemini models.
+- 🔍 Dynamic search query generation using Gemini models.
 - 🌐 Integrated web research via Google Search API.
-- 🤔 Reflective reasoning to identify knowledge gaps and refine searches.
-- 📄 Generates answers with citations from gathered sources.
 - 🔄 Hot-reloading for both frontend and backend during development.
+
 
 ## Project Structure
 
@@ -61,29 +60,6 @@ This will run the backend and frontend development servers.    Open your browser
 
 _Alternatively, you can run the backend and frontend development servers separately. For the backend, open a terminal in the `backend/` directory and run `langgraph dev`. The backend API will be available at `http://127.0.0.1:2024`. It will also open a browser window to the LangGraph UI. For the frontend, open a terminal in the `frontend/` directory and run `npm run dev`. The frontend will be available at `http://localhost:5173`._
 
-## How the Backend Agent Works (High-Level)
-
-The core of the backend is a LangGraph agent defined in `backend/src/agent/graph.py`. It follows these steps:
-
-<img src="./agent.png" title="Agent Flow" alt="Agent Flow" width="50%">
-
-1.  **Generate Initial Queries:** Based on your input, it generates a set of initial search queries using a Gemini model.
-2.  **Web Research:** For each query, it uses the Gemini model with the Google Search API to find relevant web pages.
-3.  **Reflection & Knowledge Gap Analysis:** The agent analyzes the search results to determine if the information is sufficient or if there are knowledge gaps. It uses a Gemini model for this reflection process.
-4.  **Iterative Refinement:** If gaps are found or the information is insufficient, it generates follow-up queries and repeats the web research and reflection steps (up to a configured maximum number of loops).
-5.  **Finalize Answer:** Once the research is deemed sufficient, the agent synthesizes the gathered information into a coherent answer, including citations from the web sources, using a Gemini model.
-
-## CLI Example
-
-For quick one-off questions you can execute the agent from the command line. The
-script `backend/examples/cli_research.py` runs the LangGraph agent and prints the
-final answer:
-
-```bash
-cd backend
-python examples/cli_research.py "What are the latest trends in renewable energy?"
-```
-
 
 ## Deployment
 
@@ -106,15 +82,3 @@ _Note: If you are not running the docker-compose.yml example or exposing the bac
    ```
 
 Open your browser and navigate to `http://localhost:8123/app/` to see the application. The API will be available at `http://localhost:8123`.
-
-## Technologies Used
-
-- [React](https://reactjs.org/) (with [Vite](https://vitejs.dev/)) - For the frontend user interface.
-- [Tailwind CSS](https://tailwindcss.com/) - For styling.
-- [Shadcn UI](https://ui.shadcn.com/) - For components.
-- [LangGraph](https://github.com/langchain-ai/langgraph) - For building the backend research agent.
-- [Google Gemini](https://ai.google.dev/models/gemini) - LLM for query generation, reflection, and answer synthesis.
-
-## License
-
-This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for details. 
