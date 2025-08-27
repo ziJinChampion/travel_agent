@@ -1,4 +1,8 @@
 import os
+import logging
+import uuid
+import time
+import json
 
 from agent.tools_and_schemas import SearchQueryList, Reflection, LocationInfo, TravelPlan
 from dotenv import load_dotenv
@@ -18,7 +22,6 @@ from agent.state import (
     LocationInfoState,
     ReflectionState,
     LocationSearchState,
-    AgentState,
 )
 from agent.configuration import Configuration
 from agent.prompts import (
@@ -36,6 +39,7 @@ from agent.utils import (
 )
 
 load_dotenv()
+
 
 if os.getenv("GEMINI_API_KEY") is None:
     raise ValueError("GEMINI_API_KEY is not set")
@@ -140,15 +144,15 @@ llm = ChatGoogleGenerativeAI(
     )
 LLM_WITH_TOOLS = llm.bind_tools(tools)
 
-async def agent_node(state: AgentState, config: RunnableConfig) -> dict:
+async def agent_node(state: OverallState, config: RunnableConfig) -> dict:
     """Agent的大脑，决定下一步行动"""
     print("---AGENT NODE---")
-    response = await LLM_WITH_TOOLS.ainvoke(state['messages'])
+    response = await LLM_WITH_TOOLS.ainvoke(state['messages'], {"recursion_limit": 100})
     return {"messages": [response]}
 
 
 
-def prepare_agent_loop(state: OverallState) -> AgentState:
+def prepare_agent_loop(state: LocationInfoState) -> OverallState:
     """将预处理的结果格式化为Agent循环的初始输入"""
     location = state.get("location")
     date = state.get("date")
@@ -161,147 +165,81 @@ def prepare_agent_loop(state: OverallState) -> AgentState:
         date=date,
         location=location
     )
-    return {"messages": [HumanMessage(content=formatted_prompt + "\n" + user_info)]}
+    return {
+        "messages": [HumanMessage(content=formatted_prompt + "\n" + user_info)],
+        "mcp_result": [],
+        "best_time": "",
+        "suggested_budget": "",
+        "view_points": "",
+        "food": "",
+        "hotel": "",
+        "transportation": "",
+        "tips": "",
+        "weather": "",
+        "overall_plan": ""
+    }
 
 def continue_to_location_research(state: LocationInfoState) -> str:
     if not state.get("is_location_info"):
-        # 如果没有地点信息，可以设计一个专门的节点来向用户提问
         return "end_without_plan" 
     else:
-        return "start_agent_loop"
+        return "start_agent_loop" 
+
+async def logging_tool_node(state: OverallState) -> dict:
+    last_message = state['messages'][-1]
+    
+    # 确保是AI消息并且有工具调用
+    if not isinstance(last_message, AIMessage) or not last_message.tool_calls:
+        return {}
+        
+    conversation_id = uuid.uuid4() 
+    
+    start_time = time.time()
+    result = await tool_node.ainvoke(state)
+    end_time = time.time()
+    
+    # 记录每一次工具调用的详细信息
+    for i, tool_call in enumerate(last_message.tool_calls):
+        log_entry = {
+            "conversation_id": conversation_id,
+            "tool_name": tool_call['name'],
+            "tool_input": tool_call['args'],
+            "tool_output": result['messages'][i].content, # ToolNode的返回结果是ToolMessage列表
+            "status": "success",
+            "latency_ms": round((end_time - start_time) * 1000, 2)
+        }
+        if state["mcp_result"] is None:
+            state["mcp_result"] = []
+        state["mcp_result"].append(log_entry)
+    return result
     
 
-async def search_loaction(state: LocationInfoState, config: RunnableConfig) -> OverallState:
-    """搜索位置信息并生成旅行计划"""
-    try:
-        # Configure
-        print("search_loaction-state------------->", state)
-        print("State keys:", list(state.keys()))
-
-        # 直接获取工具
-        structured_tools = get_tools()
-        print(f"Got {len(structured_tools)} tools")
-        
-        if not structured_tools:
-            print("Warning: No tools available, returning default response")
-            return {
-                "best_time": "需要更多信息",
-                "suggested_budget": "需要更多信息",
-                "view_points": "需要更多信息",
-                "food": "需要更多信息",
-                "hotel": "需要更多信息",
-                "transportation": "需要更多信息",
-                "tips": "无法获取工具信息",
-                "weather": "需要更多信息",
-                "overall_plan": "工具暂时不可用，请稍后重试",
-            }
-        
-        configurable = Configuration.from_runnable_config(config)
-
-        # 创建正确的提示模板 - 使用 input 变量来避免冲突
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", location_search_instructions.format(current_date=get_current_date())),
-            ("user", "{input}"),
-            ("assistant", "{agent_scratchpad}"),
-        ])
-
-        llm = ChatGoogleGenerativeAI(
-            model=configurable.query_generator_model,
-            temperature=0.0,
-            max_retries=2,
-            api_key=os.getenv("GEMINI_API_KEY"),
-        )
-        
-        print("Creating agent...")
-        agent = create_openai_functions_agent(llm, structured_tools, prompt)
-        agent_executor = AgentExecutor(agent=agent, tools=structured_tools, verbose=True)
-        
-        print("Invoking agent...")
-        input_text = f"Date: {state['date']} Location: {state['location']}"
-        
-        raw_result = await agent_executor.ainvoke({"input": input_text})
-        print("raw_result->>>>--------------", raw_result)
-        
-        print("Processing result...")
-        result = llm.with_structured_output(TravelPlan).invoke(str(raw_result))
-
-        return {
-            "best_time": result.best_time,
-            "suggested_budget": result.suggested_budget,
-            "view_points": result.view_points,
-            "food": result.food,
-            "hotel": result.hotel,
-            "transportation": result.transportation,
-            "tips": result.tips,
-            "weather": result.weather,
-            "overall_plan": result.overall_plan,
-        }
-        
-    except Exception as e:
-        print(f"Error in search_loaction: {e}")
-        import traceback
-        traceback.print_exc()
-        
-        # 返回错误信息
-        return {
-            "best_time": f"错误: {str(e)}",
-            "suggested_budget": "处理失败",
-            "view_points": "处理失败",
-            "food": "处理失败",
-            "hotel": "处理失败",
-            "transportation": "处理失败",
-            "tips": f"发生错误: {str(e)}",
-            "weather": "处理失败",
-            "overall_plan": f"处理过程中发生错误: {str(e)}",
-        }
-
-
-def finalize_answer(state: OverallState, config: RunnableConfig):
-    print("finalize_answer-state------------->", state)
-    configurable = Configuration.from_runnable_config(config)
-    reasoning_model = state.get("reasoning_model") or configurable.answer_model
-    information = f"""
-    Best time: {state["best_time"]}
-    Suggested budget: {state["suggested_budget"]}
-    View points: {state["view_points"]}
-    Food: {state["food"]}
-    Hotel: {state["hotel"]}
-    """
-    information += f"""
-    Transportation: {state["transportation"]}
-    Tips: {state["tips"]}
-    Weather: {state["weather"]}
-    Overall plan: {state["overall_plan"]}
-    """
-
-    # Format the prompt
-    current_date = get_current_date()
-    formatted_prompt = answer_instructions.format(
-        current_date=current_date,
-        research_topic=get_research_topic(state["messages"]),
-        information=information,
-    )
-
-    # init Reasoning Model, default to Gemini 2.5 Flash
-    llm = ChatGoogleGenerativeAI(
-        model=reasoning_model,
-        temperature=0,
-        max_retries=2,
-        api_key=os.getenv("GEMINI_API_KEY"),
-    )
-    result = llm.invoke(formatted_prompt)
-
+async def finalize_answer(state: OverallState, config: RunnableConfig):
+    mcp_result = state["mcp_result"]
+    food = []
+    hotel = []
+    print("finalize_answer-mcp_result------------->", state["messages"][-1])
+    for mcp_item in mcp_result:
+        if mcp_item["tool_name"] == "maps_around_search":
+            if mcp_item["tool_input"]["keywords"] == "美食":
+                food.append(mcp_item["tool_output"])
+            elif mcp_item["tool_input"]["keywords"] == "酒店":
+                hotel.append(mcp_item["tool_output"])
+    result = await llm.with_structured_output(TravelPlan).ainvoke(state["messages"][-1].content)
+    print("finalize_answer-result------------->", result)
     return {
-        "messages": [AIMessage(content=result.content)],
-        "best_time": state["best_time"],
-        "suggested_budget": state["suggested_budget"],
-        "view_points": state["view_points"],
-        "food": state["food"],
-        "hotel": state["hotel"],
-        "transportation": state["transportation"],
-        "tips": state["tips"],
-        "weather": state["weather"],
-        "overall_plan": state["overall_plan"],
+        "result": result,
+        "food": food,
+        "hotel": hotel,
+        # "best_time": state["best_time"],
+        # "suggested_budget": state["suggested_budget"],
+        # "view_points": state["view_points"],
+        # "food": state["food"],
+        # "hotel": state["hotel"],
+        # "transportation": state["transportation"],
+        # "tips": state["tips"],
+        # "weather": state["weather"],
+        # "overall_plan": state["overall_plan"],
     }
 
 
@@ -309,9 +247,10 @@ builder = StateGraph(OverallState, config_schema=Configuration)
 
 builder.add_node("check_location_info", check_location_info)
 builder.add_node("agent", agent_node) 
-builder.add_node("tool_executor", tool_node) 
+builder.add_node("tool_executor", logging_tool_node) 
 builder.add_node("prepare_agent_loop", prepare_agent_loop)
 builder.add_node("end_without_plan", lambda state: {"messages": [AIMessage("抱歉，我需要明确的地点信息才能为您规划。")]})
+builder.add_node("finalize_answer", finalize_answer)
 
 builder.add_edge(START, "check_location_info")
 builder.add_conditional_edges(
@@ -323,22 +262,10 @@ builder.add_edge("prepare_agent_loop", "agent")
 builder.add_conditional_edges(
     "agent",
     tools_condition, 
-    {"tools": "tool_executor", END: END},
+    {"tools": "tool_executor", END: "finalize_answer"},
 )
 builder.add_edge("tool_executor", "agent") 
 builder.add_edge("end_without_plan", END)
-
-# builder.add_node("check_location_info", check_location_info)
-# builder.add_node("search_loaction", search_loaction)
-# builder.add_node("finalize_answer", finalize_answer)
-# builder.add_node("agent_node", agent_node)
-# builder.add_node("tool_executor_node", tool_executor_node)
-
-# builder.add_edge(START, "check_location_info")
-# builder.add_conditional_edges(
-#     "check_location_info", continue_to_location_research, ["search_loaction", "finalize_answer"]
-# )
-# builder.add_edge("search_loaction", "finalize_answer")
-# builder.add_edge("finalize_answer", END)
+builder.add_edge("finalize_answer", END)
 
 graph = builder.compile(name="travel-agent")

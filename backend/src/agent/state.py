@@ -19,6 +19,7 @@ class TravelPlanTool(TravelPlan, BaseModel):
 
 class OverallState(TypedDict):
     messages: Annotated[list, add_messages]
+    mcp_result: list[str]
     best_time: str
     suggested_budget: str
     view_points: str
