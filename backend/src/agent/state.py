@@ -5,20 +5,41 @@ from typing import TypedDict
 
 from langgraph.graph import add_messages
 from typing_extensions import Annotated
-
+from pydantic import BaseModel
+from agent.tools_and_schemas import TravelPlan
 
 import operator
 
+class AgentState(TypedDict):
+    messages: Annotated[list, lambda x, y: x + y]
+
+class TravelPlanTool(TravelPlan, BaseModel):
+    """用于格式化并最终输出完整旅行计划的工具。"""
+    pass
 
 class OverallState(TypedDict):
     messages: Annotated[list, add_messages]
-    search_query: Annotated[list, operator.add]
-    web_research_result: Annotated[list, operator.add]
-    sources_gathered: Annotated[list, operator.add]
-    initial_search_query_count: int
-    max_research_loops: int
-    research_loop_count: int
-    reasoning_model: str
+    best_time: str
+    suggested_budget: str
+    view_points: str
+    food: str
+    hotel: str
+    transportation: str
+    tips: str
+    weather: str
+    overall_plan: str
+
+class TravelPlanState(TypedDict):
+    messages: Annotated[list, add_messages]
+    best_time: str
+    suggested_budget: str
+    view_points: str
+    food: str
+    hotel: str
+    transportation: str
+    tips: str
+    weather: str
+    overall_plan: str
 
 
 class ReflectionState(TypedDict):
@@ -36,6 +57,16 @@ class Query(TypedDict):
 
 class QueryGenerationState(TypedDict):
     search_query: list[Query]
+
+class LocationInfoState(TypedDict):
+    is_location_info: bool
+    is_date_info: bool
+    location: str
+    date: str
+
+class LocationSearchState(TypedDict):
+    date: str
+    location: str
 
 
 class WebSearchState(TypedDict):

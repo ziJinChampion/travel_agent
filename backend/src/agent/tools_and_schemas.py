@@ -21,3 +21,47 @@ class Reflection(BaseModel):
     follow_up_queries: List[str] = Field(
         description="A list of follow-up queries to address the knowledge gap."
     )
+
+class LocationInfo(BaseModel):
+    is_location_info: bool = Field(
+        description="Whether user provided location name in the question."
+    )
+    is_date_info: bool = Field(
+        description="Whether user provided date in the question."
+    )
+    location: str = Field(
+        description="The location name provided by the user."
+    )
+    date: str = Field(
+        description="The date provided by the user."
+    )
+
+
+class TravelPlan(BaseModel):
+    best_time: str = Field(
+        description="The best time to visit the location."
+    )
+    suggested_budget: str = Field(
+        description="The suggested budget for the travel."
+    )
+    view_points: str = Field(
+        description="The view points to visit in the location."
+    )
+    food: str = Field(
+        description="The food to eat in the location."
+    )
+    hotel: str = Field(
+        description="The hotel to stay in the location."
+    )
+    transportation: str = Field(
+        description="The transportation to get to the location."
+    )
+    tips: str = Field(
+        description="The tips to visit the location."
+    )
+    weather: str = Field(
+        description="The weather of the location."
+    )
+    overall_plan: str = Field(
+        description="The overall plan for the travel."
+    )

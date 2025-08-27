@@ -1,6 +1,6 @@
 import os
 from pydantic import BaseModel, Field
-from typing import Any, Optional
+from typing import Any, Optional, Dict, ClassVar
 from dotenv import load_dotenv
 from langchain_core.runnables import RunnableConfig
 load_dotenv()
@@ -21,14 +21,14 @@ class Configuration(BaseModel):
     )
 
     reflection_model: str = Field(
-        default="gemini-2.5-flash",
+        default="gemini-2.0-flash",
         metadata={
             "description": "The name of the language model to use for the agent's reflection."
         },
     )
 
     answer_model: str = Field(
-        default="gemini-2.5-pro",
+        default="gemini-2.0-flash",
         metadata={
             "description": "The name of the language model to use for the agent's answer."
         },
@@ -39,11 +39,7 @@ class Configuration(BaseModel):
         metadata={"description": "The number of initial search queries to generate."},
     )
 
-    mcp_tools_config = {
-        "amap-stream-server": {
-            "url": f"https://mcp.amap.com/mcp?key={a_map_api_key}"
-        }
-    }
+
 
     max_research_loops: int = Field(
         default=2,

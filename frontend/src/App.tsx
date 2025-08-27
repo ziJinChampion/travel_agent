@@ -20,7 +20,6 @@ export default function App() {
     messages: Message[];
     initial_search_query_count: number;
     max_research_loops: number;
-    reasoning_model: string;
   }>({
     apiUrl: import.meta.env.DEV
       ? "http://localhost:2024"
@@ -29,23 +28,17 @@ export default function App() {
     messagesKey: "messages",
     onUpdateEvent: (event: any) => {
       let processedEvent: ProcessedEvent | null = null;
-      if (event.generate_query) {
+      console.log("event->>>>", event);
+      if (event.check_location_info) {
+        console.log("check_location_info-------------> from here ");
         processedEvent = {
-          title: "Generating Search Queries",
-          data: event.generate_query?.search_query?.join(", ") || "",
+          title: "Checking Location Info",
+          data: "Checking if the location is valid",
         };
-      } else if (event.web_research) {
-        const sources = event.web_research.sources_gathered || [];
-        const numSources = sources.length;
-        const uniqueLabels = [
-          ...new Set(sources.map((s: any) => s.label).filter(Boolean)),
-        ];
-        const exampleLabels = uniqueLabels.slice(0, 3).join(", ");
+      } else if (event.search_loaction) {
         processedEvent = {
-          title: "Web Research",
-          data: `Gathered ${numSources} sources. Related to: ${
-            exampleLabels || "N/A"
-          }.`,
+          title: "正在为您搜索目的地信息",
+          data: `This is the example data `,
         };
       } else if (event.reflection) {
         processedEvent = {
@@ -138,7 +131,6 @@ export default function App() {
         messages: newMessages,
         initial_search_query_count: initial_search_query_count,
         max_research_loops: max_research_loops,
-        reasoning_model: model,
       });
     },
     [thread]
@@ -152,37 +144,37 @@ export default function App() {
   return (
     <div className="flex h-screen bg-neutral-800 text-neutral-100 font-sans antialiased">
       <main className="h-full w-full max-w-4xl mx-auto">
-          {thread.messages.length === 0 ? (
-            <WelcomeScreen
-              handleSubmit={handleSubmit}
-              isLoading={thread.isLoading}
-              onCancel={handleCancel}
-            />
-          ) : error ? (
-            <div className="flex flex-col items-center justify-center h-full">
-              <div className="flex flex-col items-center justify-center gap-4">
-                <h1 className="text-2xl text-red-400 font-bold">Error</h1>
-                <p className="text-red-400">{JSON.stringify(error)}</p>
+        {thread.messages.length === 0 ? (
+          <WelcomeScreen
+            handleSubmit={handleSubmit}
+            isLoading={thread.isLoading}
+            onCancel={handleCancel}
+          />
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center h-full">
+            <div className="flex flex-col items-center justify-center gap-4">
+              <h1 className="text-2xl text-red-400 font-bold">Error</h1>
+              <p className="text-red-400">{JSON.stringify(error)}</p>
 
-                <Button
-                  variant="destructive"
-                  onClick={() => window.location.reload()}
-                >
-                  Retry
-                </Button>
-              </div>
+              <Button
+                variant="destructive"
+                onClick={() => window.location.reload()}
+              >
+                Retry
+              </Button>
             </div>
-          ) : (
-            <ChatMessagesView
-              messages={thread.messages}
-              isLoading={thread.isLoading}
-              scrollAreaRef={scrollAreaRef}
-              onSubmit={handleSubmit}
-              onCancel={handleCancel}
-              liveActivityEvents={processedEventsTimeline}
-              historicalActivities={historicalActivities}
-            />
-          )}
+          </div>
+        ) : (
+          <ChatMessagesView
+            messages={thread.messages}
+            isLoading={thread.isLoading}
+            scrollAreaRef={scrollAreaRef}
+            onSubmit={handleSubmit}
+            onCancel={handleCancel}
+            liveActivityEvents={processedEventsTimeline}
+            historicalActivities={historicalActivities}
+          />
+        )}
       </main>
     </div>
   );
