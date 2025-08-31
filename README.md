@@ -1,84 +1,161 @@
-# Travel Agent
+# Travel Agent - AI旅行攻略生成器
 
-This is a travel agent that can help you plan your trip. Just tell the agent where and when you want to go and the agent will give you the best plan include the hotel, flight, and other information.
+这是一个基于React的AI旅行攻略生成器，能够根据用户输入的目的地自动生成详细的旅行攻略，并展示完整的AI处理过程。
 
+## 功能特性
 
+- 🎯 **个性化攻略生成**: 基于目的地特色，AI为你量身定制专属旅行计划
+- ⚡ **实时消息流展示**: 在LoadingSpinner组件中实时展示HumanMessage、ToolMessage和AIMessage
+- 🔄 **消息流历史记录**: 在TravelGuideDisplay组件中展示完整的生成过程记录
+- 🌍 **多目的地支持**: 支持全球各地的旅行攻略生成
+- 📱 **响应式设计**: 现代化的UI设计，支持各种设备
 
-## Features
+## 技术栈
 
-- 💬 Fullstack application with a React frontend and LangGraph backend.
-- 🧠 Powered by a LangGraph agent for advanced research and conversational AI.
-- 🔍 Dynamic search query generation using Gemini models.
-- 🌐 Integrated web research via Google Search API.
-- 🔄 Hot-reloading for both frontend and backend during development.
+- **React 18**: 用户界面框架
+- **TypeScript**: 类型安全的JavaScript
+- **Tailwind CSS**: 实用优先的CSS框架
+- **Vite**: 快速的构建工具
 
+## 快速开始
 
-## Project Structure
+### 环境要求
 
-The project is divided into two main directories:
+- Node.js 18+
+- npm 或 yarn
 
--   `frontend/`: Contains the React application built with Vite.
--   `backend/`: Contains the LangGraph/FastAPI application, including the research agent logic.
+### 安装和运行
 
-## Getting Started: Development and Local Testing
-
-Follow these steps to get the application running locally for development and testing.
-
-**1. Prerequisites:**
-
--   Node.js and npm (or yarn/pnpm)
--   Python 3.11+
--   **`GEMINI_API_KEY`**: The backend agent requires a Google Gemini API key.
-    1.  Navigate to the `backend/` directory.
-    2.  Create a file named `.env` by copying the `backend/.env.example` file.
-    3.  Open the `.env` file and add your Gemini API key: `GEMINI_API_KEY="YOUR_ACTUAL_API_KEY"`
-
-**2. Install Dependencies:**
-
-**Backend:**
-
+1. **克隆项目**
 ```bash
-cd backend
-pip install .
+git clone <repository-url>
+cd travel_agent
 ```
 
-**Frontend:**
-
+2. **安装依赖**
 ```bash
 cd frontend
 npm install
 ```
 
-**3. Run Development Servers:**
-
-**Backend & Frontend:**
-
+3. **启动开发服务器**
 ```bash
-make dev
+npm run dev
 ```
-This will run the backend and frontend development servers.    Open your browser and navigate to the frontend development server URL (e.g., `http://localhost:5173/app`).
 
-_Alternatively, you can run the backend and frontend development servers separately. For the backend, open a terminal in the `backend/` directory and run `langgraph dev`. The backend API will be available at `http://127.0.0.1:2024`. It will also open a browser window to the LangGraph UI. For the frontend, open a terminal in the `frontend/` directory and run `npm run dev`. The frontend will be available at `http://localhost:5173`._
+4. **访问应用**
+打开浏览器访问 `http://localhost:5173`
 
+## 使用说明
 
-## Deployment
+1. **输入目的地**: 在首页输入你想要去的目的地（如：东京、巴黎、纽约等）
+2. **等待生成**: AI将自动分析目的地信息，生成个性化攻略
+3. **查看消息流**: 在加载过程中可以实时查看AI的处理过程
+4. **浏览攻略**: 生成完成后查看详细的旅行攻略，包括景点、美食、住宿等
+5. **查看历史**: 在攻略页面可以展开查看完整的生成过程记录
 
-In production, the backend server serves the optimized static frontend build. LangGraph requires a Redis instance and a Postgres database. Redis is used as a pub-sub broker to enable streaming real time output from background runs. Postgres is used to store assistants, threads, runs, persist thread state and long term memory, and to manage the state of the background task queue with 'exactly once' semantics. For more details on how to deploy the backend server, take a look at the [LangGraph Documentation](https://langchain-ai.github.io/langgraph/concepts/deployment_options/). Below is an example of how to build a Docker image that includes the optimized frontend build and the backend server and run it via `docker-compose`.
+## 消息流功能
 
-_Note: For the docker-compose.yml example you need a LangSmith API key, you can get one from [LangSmith](https://smith.langchain.com/settings)._
+项目实现了完整的消息流处理机制：
 
-_Note: If you are not running the docker-compose.yml example or exposing the backend server to the public internet, you should update the `apiUrl` in the `frontend/src/App.tsx` file to your host. Currently the `apiUrl` is set to `http://localhost:8123` for docker-compose or `http://localhost:2024` for development._
+### 消息类型
 
-**1. Build the Docker Image:**
+1. **HumanMessage**: 用户输入，蓝色样式
+2. **ToolMessage**: 工具调用，绿色样式，包含工具名称、输入参数和输出结果
+3. **AIMessage**: AI回复，紫色样式
 
-   Run the following command from the **project root directory**:
-   ```bash
-   docker build -t gemini-fullstack-langgraph -f Dockerfile .
-   ```
-**2. Run the Production Server:**
+### 组件说明
 
-   ```bash
-   GEMINI_API_KEY=<your_gemini_api_key> LANGSMITH_API_KEY=<your_langsmith_api_key> docker-compose up
-   ```
+- **LoadingSpinner**: 显示加载状态和实时消息流
+- **TravelGuideDisplay**: 展示生成的旅行攻略和消息流历史记录
+- **DestinationInput**: 目的地输入组件
 
-Open your browser and navigate to `http://localhost:8123/app/` to see the application. The API will be available at `http://localhost:8123`.
+## 项目结构
+
+```
+frontend/
+├── src/
+│   ├── components/
+│   │   ├── LoadingSpinner.tsx      # 加载组件，展示消息流
+│   │   ├── TravelGuideDisplay.tsx  # 攻略展示组件
+│   │   ├── DestinationInput.tsx    # 目的地输入组件
+│   │   └── Header.tsx              # 页面头部
+│   ├── services/
+│   │   └── aiService.ts            # AI服务，生成攻略和消息流
+│   ├── types/
+│   │   └── index.ts                # 类型定义
+│   └── App.tsx                     # 主应用组件
+```
+
+## 自定义配置
+
+可以在 `src/services/aiService.ts` 中调整AI生成的行为：
+
+```typescript
+// 修改延迟时间
+setTimeout(async () => {
+  // 处理逻辑
+}, 3000); // 3秒延迟
+```
+
+## 开发说明
+
+### 消息流处理
+
+项目使用模拟数据来演示消息流功能。在实际应用中，你可以：
+
+1. 连接到真实的LangGraph后端
+2. 实现真实的工具调用
+3. 处理实时的AI响应
+
+### 样式定制
+
+使用Tailwind CSS类名可以轻松定制组件样式：
+
+```tsx
+// 修改消息类型样式
+const getMessageStyle = (type: string) => {
+  switch (type) {
+    case 'human':
+      return 'bg-blue-50 border-blue-200 text-blue-900';
+    // ... 其他类型
+  }
+};
+```
+
+## 故障排除
+
+### 常见问题
+
+1. **前端启动失败**: 检查Node.js版本，确保≥18
+2. **依赖安装失败**: 清除node_modules重新安装
+3. **样式不显示**: 确保Tailwind CSS正确配置
+
+### 开发建议
+
+- 使用TypeScript严格模式
+- 遵循React Hooks最佳实践
+- 保持组件的单一职责
+
+## 下一步计划
+
+- [ ] 集成真实的LangGraph后端
+- [ ] 添加更多目的地支持
+- [ ] 实现用户偏好设置
+- [ ] 添加攻略分享功能
+
+## 贡献指南
+
+1. Fork 项目
+2. 创建特性分支
+3. 提交更改
+4. 推送到分支
+5. 打开 Pull Request
+
+## 许可证
+
+本项目采用 MIT 许可证。
+
+---
+
+**注意**: 这是一个演示项目，使用模拟数据来展示消息流功能。生产环境使用前请确保实现真实的AI集成。

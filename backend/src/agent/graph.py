@@ -6,7 +6,7 @@ import json
 
 from agent.tools_and_schemas import SearchQueryList, Reflection, LocationInfo, TravelPlan
 from dotenv import load_dotenv
-from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
+from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage
 from langgraph.types import Send
 from langgraph.graph import StateGraph
 from langgraph.graph import START, END
@@ -91,33 +91,6 @@ def _initialize_tools_cache() -> None:
 _initialize_tools_cache()
 
 
-# Nodes
-async def check_location_info(state: OverallState, config: RunnableConfig) -> LocationInfoState:
-    configurable = Configuration.from_runnable_config(config)
-
-    # check for custom initial search query count
-    if state.get("initial_search_query_count") is None:
-        state["initial_search_query_count"] = configurable.number_of_initial_queries
-
-    # init Gemini 2.0 Flash
-    llm = ChatGoogleGenerativeAI(
-        model=configurable.query_generator_model,
-        temperature=1.0,
-        max_retries=2,
-        api_key=os.getenv("GEMINI_API_KEY"),
-    )
-    structured_llm = llm.with_structured_output(LocationInfo)
-
-    # Format the prompt
-    current_date = get_current_date()
-    formatted_prompt = location_info_instructions.format(
-        research_topic=get_research_topic(state["messages"]),
-    )
-    # Generate the search queries
-    result = structured_llm.invoke(formatted_prompt)
-    return {"is_location_info": result.is_location_info, "is_date_info": result.is_date_info, "location": result.location, "date": result.date}
-
-
 # def continue_to_location_research(state: LocationInfoState):
 #     if state["is_location_info"] == False:
 #         return "finalize_answer"
@@ -144,13 +117,30 @@ llm = ChatGoogleGenerativeAI(
     )
 LLM_WITH_TOOLS = llm.bind_tools(tools)
 
-async def agent_node(state: OverallState, config: RunnableConfig) -> dict:
-    """Agent的大脑，决定下一步行动"""
-    print("---AGENT NODE---")
-    response = await LLM_WITH_TOOLS.ainvoke(state['messages'], {"recursion_limit": 100})
-    return {"messages": [response]}
+# Nodes
+async def check_location_info(state: OverallState, config: RunnableConfig) -> LocationInfoState:
+    configurable = Configuration.from_runnable_config(config)
 
+    # check for custom initial search query count
+    if state.get("initial_search_query_count") is None:
+        state["initial_search_query_count"] = configurable.number_of_initial_queries
 
+    structured_llm = llm.with_structured_output(LocationInfo)
+
+    # Format the prompt
+    current_date = get_current_date()
+    formatted_prompt = location_info_instructions.format(
+        research_topic=get_research_topic(state["messages"]),
+    )
+    # Generate the search queries
+    result = structured_llm.invoke(formatted_prompt)
+    return {"is_location_info": result.is_location_info, "is_date_info": result.is_date_info, "location": result.location, "date": result.date}
+
+def continue_to_location_research(state: LocationInfoState) -> str:
+    if not state.get("is_location_info"):
+        return "end_without_plan" 
+    else:
+        return "start_agent_loop" 
 
 def prepare_agent_loop(state: LocationInfoState) -> OverallState:
     """将预处理的结果格式化为Agent循环的初始输入"""
@@ -159,14 +149,12 @@ def prepare_agent_loop(state: LocationInfoState) -> OverallState:
     if not date:
         date = f"{get_current_date()} to {get_target_date()}"
     
-    user_info = f"目的地: {location}, 日期: {date}"
-    formatted_prompt = location_search_instructions.format(
-        current_date=get_current_date(),
-        date=date,
-        location=location
-    )
     return {
-        "messages": [HumanMessage(content=formatted_prompt + "\n" + user_info)],
+        "messages": [HumanMessage(content=location_search_instructions.format(
+            current_date=get_current_date(),
+            date=date,
+            location=location
+        )), HumanMessage(content=f"目的地: {location}, 日期: {date}")],
         "mcp_result": [],
         "best_time": "",
         "suggested_budget": "",
@@ -179,11 +167,12 @@ def prepare_agent_loop(state: LocationInfoState) -> OverallState:
         "overall_plan": ""
     }
 
-def continue_to_location_research(state: LocationInfoState) -> str:
-    if not state.get("is_location_info"):
-        return "end_without_plan" 
-    else:
-        return "start_agent_loop" 
+async def agent_node(state: OverallState, config: RunnableConfig) -> dict:
+    """Agent的大脑，决定下一步行动"""
+    print("---AGENT NODE---")
+    response = await LLM_WITH_TOOLS.ainvoke(state['messages'], {"recursion_limit": 100})
+    return {"messages": [response]}
+
 
 async def logging_tool_node(state: OverallState) -> dict:
     last_message = state['messages'][-1]
@@ -218,7 +207,6 @@ async def finalize_answer(state: OverallState, config: RunnableConfig):
     mcp_result = state["mcp_result"]
     food = []
     hotel = []
-    print("finalize_answer-mcp_result------------->", state["messages"][-1])
     for mcp_item in mcp_result:
         if mcp_item["tool_name"] == "maps_around_search":
             if mcp_item["tool_input"]["keywords"] == "美食":
@@ -227,13 +215,17 @@ async def finalize_answer(state: OverallState, config: RunnableConfig):
                 hotel.append(mcp_item["tool_output"])
     result = await llm.with_structured_output(TravelPlan).ainvoke(state["messages"][-1].content)
     print("finalize_answer-result------------->", result)
+    
+    # 将Pydantic模型转换为字典，然后序列化
+    result_dict = result.model_dump() if hasattr(result, 'model_dump') else result.dict()
+    
     return {
-        "result": result,
+        "result": json.dumps(result_dict, ensure_ascii=False),
         "food": food,
         "hotel": hotel,
         # "best_time": state["best_time"],
         # "suggested_budget": state["suggested_budget"],
-        # "view_points": state["view_points"],
+        # "view_points": state["food"],
         # "food": state["food"],
         # "hotel": state["hotel"],
         # "transportation": state["transportation"],

@@ -20,6 +20,7 @@ class TravelPlanTool(TravelPlan, BaseModel):
 class OverallState(TypedDict):
     messages: Annotated[list, add_messages]
     mcp_result: list[str]
+    current_destination: str  # 添加当前目的地字段
     best_time: str
     suggested_budget: str
     view_points: str
