@@ -6,18 +6,15 @@ export interface Destination {
 }
 
 export interface TravelGuide {
-  id: string;
-  destination: string;
-  country: string;
-  overview: string;
-  attractions: Attraction[];
+  id?: string;
+  destination?: string;
+  attractions?: Attraction[];
   restaurants: Restaurant[];
   hotels: Hotel[];
-  transportation: Transportation;
-  tips: string[];
+  transportation: string;
+  tips: string;
   bestTimeToVisit: string;
   estimatedBudget: string;
-  createdAt: Date;
   messageStream?: MessageStreamItem[]; // 添加消息流支持
 }
 

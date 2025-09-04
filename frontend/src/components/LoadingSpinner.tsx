@@ -49,10 +49,10 @@ export function LoadingSpinner({
     if (messageStream.length === 0) return 1;
 
     const hasToolCalls = messageStream.some((msg) => msg.type === "tool");
-    const hasToolResults = messageStream.some((msg) => msg.toolOutput);
-    const hasAIResponse = messageStream.some(
-      (msg) => msg.type === "ai" && msg.content.length > 50
+    const hasToolResults = messageStream.some(
+      (msg) => msg.type === "tool" && msg.content
     );
+    const hasAIResponse = aiMessage && aiMessage.length > 20;
 
     if (hasAIResponse && hasToolResults) return 5;
     if (hasToolResults) return 4;

@@ -18,15 +18,17 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 interface TravelGuideDisplayProps {
-  guide: TravelGuide;
+  guide?: TravelGuide | null;
   onBack: () => void;
   aiMessage: string;
+  finalGuide?: TravelGuide | null;
 }
 
 export function TravelGuideDisplay({
   guide,
   onBack,
   aiMessage,
+  finalGuide,
 }: TravelGuideDisplayProps) {
   const [activeTab, setActiveTab] = useState<
     "overview" | "attractions" | "restaurants" | "hotels" | "transport" | "tips"
@@ -268,7 +270,11 @@ export function TravelGuideDisplay({
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               住宿建议
             </h3>
-            <p className="text-gray-600">住宿信息正在生成中，请稍候...</p>
+            <p className="text-gray-600">
+              {finalGuide
+                ? finalGuide.hotels.map((hotel) => hotel.name)
+                : "住宿信息正在生成中，请稍候..."}
+            </p>
           </div>
         </div>
       ),
@@ -283,7 +289,11 @@ export function TravelGuideDisplay({
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               交通信息
             </h3>
-            <p className="text-gray-600">交通信息正在生成中，请稍候...</p>
+            <p className="text-gray-600">
+              {finalGuide
+                ? finalGuide.transportation
+                : "交通信息正在生成中，请稍候..."}
+            </p>
           </div>
         </div>
       ),
@@ -298,7 +308,9 @@ export function TravelGuideDisplay({
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               旅行贴士
             </h3>
-            <p className="text-gray-600">旅行贴士正在生成中，请稍候...</p>
+            <p className="text-gray-600">
+              {finalGuide ? finalGuide.tips : "旅行贴士正在生成中，请稍候..."}
+            </p>
           </div>
         </div>
       ),

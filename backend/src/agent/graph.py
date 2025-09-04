@@ -214,24 +214,22 @@ async def finalize_answer(state: OverallState, config: RunnableConfig):
             elif mcp_item["tool_input"]["keywords"] == "酒店":
                 hotel.append(mcp_item["tool_output"])
     result = await llm.with_structured_output(TravelPlan).ainvoke(state["messages"][-1].content)
-    print("finalize_answer-result------------->", result)
+    print("result------------->", result)
     
     # 将Pydantic模型转换为字典，然后序列化
     result_dict = result.model_dump() if hasattr(result, 'model_dump') else result.dict()
     
     return {
-        "result": json.dumps(result_dict, ensure_ascii=False),
+    
         "food": food,
         "hotel": hotel,
-        # "best_time": state["best_time"],
-        # "suggested_budget": state["suggested_budget"],
-        # "view_points": state["food"],
-        # "food": state["food"],
-        # "hotel": state["hotel"],
-        # "transportation": state["transportation"],
-        # "tips": state["tips"],
-        # "weather": state["weather"],
-        # "overall_plan": state["overall_plan"],
+        "best_time": result.best_time,
+        "suggested_budget": result.suggested_budget,
+        "view_points": result.view_points,
+        "transportation": result.transportation,
+        "tips": result.tips,
+        "weather": result.weather,
+        "overall_plan": result.overall_plan,
     }
 
 

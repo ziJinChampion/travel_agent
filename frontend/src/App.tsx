@@ -4,7 +4,7 @@ import { DestinationInput } from "./components/DestinationInput";
 import { LoadingSpinner } from "./components/LoadingSpinner";
 import { TravelGuideDisplay } from "./components/TravelGuideDisplay";
 
-import { TravelGuide, MessageStreamItem } from "./types";
+import { TravelGuide, MessageStreamItem, Restaurant, Hotel } from "./types";
 import { useStream } from "@langchain/langgraph-sdk/react";
 import type { Message } from "@langchain/langgraph-sdk";
 
@@ -16,10 +16,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const hasFinalizeEventOccurredRef = useRef(false);
   const [aiMessage, setAiMessage] = useState<string>("");
-
-  useEffect(() => {
-    console.log("aiMessage", aiMessage);
-  }, [aiMessage]);
+  const [guide, setGuide] = useState<TravelGuide | null>(null);
 
   const thread = useStream<{
     messages: Message[];
@@ -42,6 +39,26 @@ function App() {
         console.log("reflection-------------> from here ");
       } else if (event.finalize_answer) {
         console.log("finalize_answer-------------> from here ");
+        const foods: Restaurant[] = [];
+        const hotels: Hotel[] = [];
+        event.finalize_answer.food.map((item: string) => {
+          const foodItem = JSON.parse(item);
+          foods.push(foodItem.pois);
+        });
+        event.finalize_answer.hotel.map((item: string) => {
+          const hotelItem = JSON.parse(item);
+          hotels.push(hotelItem.pois);
+        });
+        console.log("foods------------->", foods);
+        console.log("hotels------------->", hotels);
+        setGuide({
+          restaurants: foods,
+          hotels: hotels,
+          bestTimeToVisit: event.finalize_answer.best_time as string,
+          estimatedBudget: event.finalize_answer.suggested_budget as string,
+          tips: event.finalize_answer.tips as string,
+          transportation: event.finalize_answer.transportation as string,
+        });
         hasFinalizeEventOccurredRef.current = true;
       }
     },
@@ -53,7 +70,6 @@ function App() {
   // 处理消息流更新
   useEffect(() => {
     if (thread.messages && thread.messages.length > 0) {
-      console.log("thread.messages", thread.messages);
       const processedMessages = processMessageStream(thread.messages);
       setMessageStream(processedMessages);
       handleFinalPlan(thread.messages);
@@ -262,6 +278,7 @@ function App() {
         ) : currentGuide ? (
           <TravelGuideDisplay
             guide={currentGuide}
+            finalGuide={guide}
             onBack={handleBack}
             aiMessage={aiMessage}
           />
